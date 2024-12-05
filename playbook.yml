@@ -1,0 +1,49 @@
+---
+- name: Deploy ModSecurity container with Podman and systemd
+  hosts: modsecurity-hosts
+  become: true
+  tasks:
+    - name: Install Podman if not installed
+      package:
+        name: podman
+        state: present
+
+    - name: Pull the ModSecurity container image
+      ansible.builtin.command:
+        cmd: podman pull owasp/modsecurity:latest
+      register: modsec_pull_result
+      changed_when: "'Updated' in modsec_pull_result.stdout"
+
+    - name: Create a directory for ModSecurity configuration
+      ansible.builtin.file:
+        path: /etc/modsecurity
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Copy ModSecurity configuration
+      ansible.builtin.copy:
+        src: files/modsecurity.conf
+        dest: /etc/modsecurity/modsecurity.conf
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Create systemd service file for ModSecurity container
+      ansible.builtin.template:
+        src: templates/modsecurity-container.service.j2
+        dest: /etc/systemd/system/modsecurity-container.service
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Reload systemd to register the new service
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: Start and enable ModSecurity container service
+      ansible.builtin.systemd:
+        name: modsecurity-container.service
+        state: started
+        enabled: true
