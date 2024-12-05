@@ -1,0 +1,17 @@
+[Unit]
+Description=ModSecurity Container
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/podman run --rm \
+  --name modsecurity \
+  -p 80:80 \
+  -p 443:443 \
+  -v /etc/modsecurity:/etc/modsecurity:ro \
+  owasp/modsecurity:latest
+ExecStop=/usr/bin/podman stop modsecurity
+Restart=always
+User=modsecurity
+
+[Install]
+WantedBy=multi-user.target
